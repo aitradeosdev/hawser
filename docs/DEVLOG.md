@@ -82,8 +82,18 @@ Legend: `+` created · `~` edited · `-` removed · `!` decision · `⚙` comman
 - Verified `apps/web` key files present: `package.json`, `next.config.ts`, `tsconfig.json`,
   `app/page.tsx`, `app/layout.tsx`.
 
-**Outcome of Session 1:** working Next.js 16 monorepo baseline + full docs/memory/logging foundation,
-ready for first commit.
+**Commit & housekeeping**
+- ⚙ First commit `b2bb5d0` — "chore: bootstrap Attestly monorepo — foundation, docs, Next.js 16 app"
+  (28 files tracked; `node_modules` correctly ignored).
+- Noted: `create-next-app` also generated `apps/web/AGENTS.md` + `apps/web/CLAUDE.md` (agent-guidance
+  stubs) and `apps/web/app/{page,layout}.tsx`, `globals.css` — default template, to be replaced when the
+  app shell is built.
+- `+ .gitattributes` — normalize text to LF (`* text=auto eol=lf`), mark binaries, collapse
+  `package-lock.json` in diffs. Fixes the CRLF/LF warnings seen on first commit.
+
+**Outcome of Session 1:** working Next.js 16 monorepo baseline (green build) + full docs/memory/logging
+foundation, committed. Ready to begin Phase 0 feature work pending direction from the user
+(name confirmation, first-increment focus, cloud-service posture).
 
 **Memory**
 - `+ memory/MEMORY.md` (index) + `+ memory/{attestly-project-overview, attestly-tech-stack,
