@@ -1,0 +1,21 @@
+{
+  "name": "attestly",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Attestly — a platform for creating authentic, verifiable professional documents (provisional codename).",
+  "workspaces": [
+    "apps/*",
+    "services/*",
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "npm run dev --workspace apps/web",
+    "build": "npm run build --workspace apps/web",
+    "start": "npm run start --workspace apps/web",
+    "lint": "npm run lint --workspace apps/web"
+  },
+  "license": "UNLICENSED"
+}
