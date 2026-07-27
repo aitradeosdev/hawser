@@ -1,104 +1,97 @@
-# Development Log
+# Hawser DEVLOG
 
-Exhaustive, append-only record of every creation / edit / removal. Newest entries at the top of each
-day. Rule: **if it isn't here, it didn't happen.** The README carries a condensed digest; durable facts
-are mirrored to persistent memory.
+## 2026-07-27 — Full build from clean slate
 
-Legend: `+` created · `~` edited · `-` removed · `!` decision · `⚙` command run · `⚠` issue/fix.
+The repository was cleared of the previous project's files and Hawser was
+built end to end in one pass, following the build-and-design plan.
 
----
+### Created
 
-## 2026-07-17 — Session 1: Project bootstrap & foundation
+- **Scaffold** — `package.json` (Next.js 16, React 19, supabase-js),
+  `tsconfig.json`, `next.config.ts`, `.gitignore`, `.env.example` with every
+  tunable exposed as an environment variable.
+- **Imagery** (`public/images/`) — generated via Pollinations (Flux), all
+  free to use: `harbour-night.png` (hero backdrop), `rope-strands.png` and
+  `bollard-hitch.png` (how-it-works figures), `icon-256.png` / `icon-512.png`
+  / `apple-touch-icon.png` (PWA icons), `og-image.png` (social card).
+- **Core lib** (`lib/`) — `config.ts` (all tunables, env-driven, no magic
+  numbers elsewhere), `copy.ts` (every user-facing string, nautical term
+  paired with plain language), `codes.ts` (NATO word + four digits; mint,
+  parse, split), `format.ts`, `platform.ts` (device labels), `supabase.ts`
+  (client factory, Realtime only), `types.ts` (state machine + wire frames).
+- **`lib/session.ts`** — `HawserSession`: the whole state machine in one
+  class outside React. Presence-gated pairing (first-sync occupancy check,
+  re-mint on collision, third-device rejection), deterministic offerer by
+  lower peerId, trickle ICE with pre-remote-description queueing, pending
+  offer buffer, 20 s connect timeout, DIRECT/RELAYED detection from ICE
+  stats, 16 KiB chunked transfer with bufferedAmount backpressure
+  (1 MiB high / 256 KiB low), end/ack handshake, peer-leave handling in
+  every phase, object-URL lifecycle.
+- **React layer** — `hooks/useHawser.ts` (thin snapshot binding, pagehide
+  teardown), `components/Rope.tsx` (SVG quadratic whose control-point Y is
+  the only animated value; spring runs outside React; bead position is the
+  progress bar; hatch pattern on failure; reduced-motion renders taut),
+  `CodeInput.tsx` (word picker + digit slots, paste fills both),
+  `Landing.tsx`, `SessionView.tsx` (drop zone, large-file confirm, live
+  regions), `TransferList.tsx`.
+- **App shell** — `app/layout.tsx` (Familjen Grotesk / Public Sans / DM
+  Mono via next/font, PWA + OG meta, viewport-fit cover), `app/page.tsx`,
+  `app/manifest.ts`, `app/globals.css` (Harbour Night tokens; kilo yellow
+  on exactly two things), `app/api/heartbeat/route.ts` (the only server
+  code: daily Supabase keepalive), `vercel.json` (cron),
+  `supabase/setup.sql` (heartbeat table + optional Realtime Authorization
+  policy).
 
-**Environment recon**
-- ⚙ Verified toolchain: Node v24.15.0, npm 11.12.1, git 2.54.0.windows.1. No pnpm, no docker.
-- ⚙ Confirmed working dir `c:\Users\HP\Grudxxl` empty; memory dir empty (no prior MEMORY.md).
+### Verified live (same day)
 
-**Repository**
-- ⚙ `git init -b main` in `c:\Users\HP\Grudxxl`.
-- `+ .gitignore` — Next.js/monorepo ignores; hard-excludes `.env*` (except `.env.example`), keys,
-  secrets, rendered `*.local.pdf`, caches.
+- `.env` filled: Supabase project, Metered TURN (config upgraded from a
+  single `NEXT_PUBLIC_TURN_URL` to comma-separated `NEXT_PUBLIC_TURN_URLS`
+  sharing one credential pair), generated `CRON_SECRET`.
+- `uid()` given a non-secure-context fallback so LAN testing over plain
+  http works (`crypto.randomUUID` needs https/localhost).
+- Added `scripts/e2e-smoke.mjs` (+ `npm run test:e2e`, playwright-core
+  driving system Edge): two isolated browser contexts pair over the real
+  Supabase channel, transfer 2 MB over the data channel, verify every byte,
+  and propagate cast-off. **PASS on first run: MADE FAST · DIRECT,
+  QUEBEC-4689, payload intact.**
 
-**Foundation docs**
-- `+ README.md` — project charter: positioning (authentic/verifiable docs), the ⚠ core boundary
-  (issue-your-own vs fake-third-party), chosen stack table, repo layout, condensed dev log, and the
-  logging-discipline statement. Marks "Attestly" as a **provisional** codename.
-- `+ docs/ARCHITECTURE.md` — system overview diagram; bifurcated rendering strategy (Playwright for
-  official docs, Satori for previews, pdf-lib post-processing; wkhtmltopdf banned, cloud PDF APIs
-  rejected); Next.js per-route rendering decision tree; security invariants (data-layer auth, patch RSC
-  CVEs); multi-tenancy model; deployment topology; open questions.
-- `+ docs/DECISIONS.md` — ADR-000..010. Accepted: 000 (anti-fraud pillar), 001 (Next.js 16), 002
-  (self-hosted Playwright), 003 (Postgres+Drizzle), 010 (npm workspaces monorepo). Proposed: 004
-  (Supabase vs Neon), 005 (R2), 006 (WorkOS vs Better Auth), 007 (Konva vs Fabric), 008 (TipTap+Yjs),
-  009 (per-user MCP server).
-- `+ docs/SAFETY.md` — normative acceptable-use: the hard boundary, MVP guardrails (KYB gating, unique
-  IDs, audit trail, QR verification portal, labelling), V1+ authenticity (C2PA/PAdES/RFC3161), global
-  compliance (eIDAS 2.0, GDPR, CCPA/CPRA, SOC 2, KYC/AML), encryption/access control, verified-source
-  context (FTC $12.5B/2024; Cotality 0.86%/46%), legal action items.
-- `+ docs/ROADMAP.md` — Phase 0 / MVP / V1 / V2 sequencing (templates → canvas+AI → programmatic/MCP);
-  monetization tiers.
-- `+ docs/DEVLOG.md` — this file.
+### Ultracode review (same day)
 
-**App scaffold**
-- ⚠ `create-next-app` failed twice ("application path is not writable") — root cause: it checks the
-  *parent* dir's writability and `apps/` did not exist. Fix: create `apps/` first, then scaffold into
-  `apps/web`. (First attempt via Git Bash, second via PowerShell — same cause, not a shell issue.)
-- ⚙ `New-Item apps` + `npx create-next-app@latest apps/web --ts --tailwind --eslint --app --no-src-dir
-  --use-npm --import-alias '@/*' --yes` — ✅ succeeded. Scaffolded **Next.js 16.2.10, React 19.2.4,
-  Tailwind v4**, App Router, ESLint, import alias `@/*`. Detected the parent git repo (no nested `.git`).
-- `+ apps/web/**` — standard Next.js app: `app/`, `public/`, `next.config.ts`, `tsconfig.json`,
-  `postcss.config.mjs`, `eslint.config.mjs`, `package.json`, `.gitignore`, `README.md`.
+22-agent workflow: 6 dimension reviewers (signaling, transfer engine,
+React/UI, failure paths, requirements compliance, deploy config), each
+finding adversarially verified by an independent skeptic. 16 raised,
+13 confirmed, 3 refuted. All 13 fixed:
 
-**Monorepo root & workspace install**
-- `+ package.json` (root) — npm workspaces (`apps/*`, `services/*`, `packages/*`), delegating
-  `dev/build/start/lint` scripts to `apps/web`, `engines.node >=20`, `license: UNLICENSED` (proprietary
-  for now; license choice deferred).
-- `+ .env.example` — documented env surface (DB, R2, WorkOS/Better Auth, renderer, Redis, Stripe, KYB,
-  verification/signing). Placeholders only; real secrets git-ignored.
-- ⚠ First root `npm install` failed (exit 45, `ENOTEMPTY`/`EPERM` on `rmdir`) — hoisting tried to delete
-  the pre-existing `apps/web/node_modules/next/dist/docs/...` deep paths (>260 chars). Extraction works
-  on this system (scaffold installed fine); only deletion of deep pre-existing dirs failed.
-- ⚙ Attempted fix: `git config core.longpaths true`; cleared `node_modules` via `robocopy /MIR`
-  empty-mirror trick + `Remove-Item`; removed stray `package-lock.json`s; then root `npm install`.
-- ⚠⚠ **Footgun (destructive):** the failed first root install had created an npm workspace **junction**
-  `node_modules/web → apps/web`. `robocopy /MIR` follows junctions without `/XJ`, so mirroring an empty
-  dir over root `node_modules` **traversed the junction and wiped the real `apps/web` scaffold**
-  (`package.json`, `app/`, configs all gone). No data loss of value — it was a fresh scaffold — but the
-  scaffold had to be rebuilt. **Lesson:** never `robocopy /MIR` over a `node_modules` that may contain
-  workspace symlinks/junctions (use `/XJ`, or just don't); prefer avoiding hoist-over-existing entirely.
-- ⚙ **Clean recovery:** delete bogus root `package-lock.json`; re-run `create-next-app apps/web ...
-  --skip-install` (files only, no `node_modules`); then a single fresh root `npm install` (nothing
-  pre-existing to delete or junction into) → hoisted workspace `node_modules`; then
-  `npm run build --workspace apps/web`.
+- `lib/session.ts` — guest arms the 20 s connect timer at join (backstop
+  for every pre-gate race); gate() fails a guest cleanly on a crowded or
+  emptied room instead of stranding it in "passing"; failWith() respects a
+  deliberate cast-off; pump() distinguishes line-drop from file-scoped
+  errors (unreadable file, missing ack) — drops the file, surfaces a
+  notice, keeps the queue moving; sendOne closes out an unreadable file
+  with an end frame so the receiver isn't left dangling; one-shot notices
+  reset on each new transfer.
+- `hooks/useHawser.ts` — pageshow handler resets to landing after a
+  bfcache restore (pagehide had destroyed the session).
+- `components/SessionView.tsx` — dragleave only clears the highlight when
+  the pointer truly leaves the container.
+- `components/CodeInput.tsx` — digits are selectable/overtypable
+  (maxLength removed, select-on-focus).
+- Images re-encoded as true PNGs (they were JPEG bytes with .png names);
+  og-image resized to its declared 1200x630; Landing dimensions corrected
+  to intrinsic 940x627.
+- All remaining hardcoded strings moved into `lib/copy.ts`; the "16 KiB"
+  landing copy now derives from `config.chunkBytes` (new
+  `formatBinaryBytes`).
+- `.site-header` absorbs `env(safe-area-inset-top)` for iOS standalone.
 
-**✅ Verified baseline (green)**
-- ⚙ `npm install` (root): added 362 packages, 0 install errors. `+ package-lock.json` (single root lock).
-  Workspace symlink `node_modules/web → apps/web` created (normal; git-ignored). `apps/web` fully
-  hoisted (no nested `node_modules`).
-- ⚙ `npm run build --workspace apps/web`: **✓ compiled in 17.9s, TypeScript passed**, 4 static pages
-  generated (`/`, `/_not-found`). Next.js 16.2.10 (Turbopack).
-- ⚠ `npm audit`: 2 moderate vulnerabilities reported. **Not** auto-fixed (`--force` could break Next).
-  TODO: review + patch deliberately.
-- Verified `apps/web` key files present: `package.json`, `next.config.ts`, `tsconfig.json`,
-  `app/page.tsx`, `app/layout.tsx`.
+Re-verified after fixes: `tsc` clean, production build clean, e2e smoke
+PASS (FOXTROT-2370, 2 MB intact, cast-off propagated).
 
-**Commit & housekeeping**
-- ⚙ First commit `b2bb5d0` — "chore: bootstrap Attestly monorepo — foundation, docs, Next.js 16 app"
-  (28 files tracked; `node_modules` correctly ignored).
-- Noted: `create-next-app` also generated `apps/web/AGENTS.md` + `apps/web/CLAUDE.md` (agent-guidance
-  stubs) and `apps/web/app/{page,layout}.tsx`, `globals.css` — default template, to be replaced when the
-  app shell is built.
-- `+ .gitattributes` — normalize text to LF (`* text=auto eol=lf`), mark binaries, collapse
-  `package-lock.json` in diffs. Fixes the CRLF/LF warnings seen on first commit.
+### Decisions
 
-**Outcome of Session 1:** working Next.js 16 monorepo baseline (green build) + full docs/memory/logging
-foundation, committed. Ready to begin Phase 0 feature work pending direction from the user
-(name confirmation, first-increment focus, cloud-service posture).
-
-**Memory**
-- `+ memory/MEMORY.md` (index) + `+ memory/{attestly-project-overview, attestly-tech-stack,
-  attestly-safety-boundary, logging-discipline, attestly-build-status}.md`.
-
----
-
-<!-- New entries appended above this line, under the current date. -->
+- No API routes on the hot path; signaling is entirely client-side over one
+  Realtime channel per code.
+- Session logic lives in a plain class emitting immutable snapshots; React
+  only renders them. Progress emissions throttled to 100 ms.
+- Failure carries no colour of its own — the rope goes slack with a hatch
+  across it; copy stays plain and specific.

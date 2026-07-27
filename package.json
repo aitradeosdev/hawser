@@ -1,21 +1,26 @@
 {
-  "name": "attestly",
-  "version": "0.0.0",
+  "name": "hawser",
+  "version": "0.1.0",
   "private": true,
-  "description": "Attestly — a platform for creating authentic, verifiable professional documents (provisional codename).",
-  "workspaces": [
-    "apps/*",
-    "services/*",
-    "packages/*"
-  ],
-  "engines": {
-    "node": ">=20"
-  },
+  "description": "Browser-to-browser file transfer over a WebRTC data channel. Two devices, one line, nothing in between.",
   "scripts": {
-    "dev": "npm run dev --workspace apps/web",
-    "build": "npm run build --workspace apps/web",
-    "start": "npm run start --workspace apps/web",
-    "lint": "npm run lint --workspace apps/web"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "test:e2e": "node scripts/e2e-smoke.mjs"
   },
-  "license": "UNLICENSED"
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.0",
+    "next": "^16.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "playwright-core": "^1.62.0",
+    "typescript": "^5.7.0"
+  }
 }
